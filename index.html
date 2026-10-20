@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DrawerCount for Square: blind end-of-day cash count (demo)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%92%B5%3C/text%3E%3C/svg%3E">
+<meta name="description" content="Blind, bill-by-bill drawer count for Square sellers. Count first, then see expected cash, over/short and what caused it. Interactive demo.">
+<style>
+:root{--ink:#14202b;--muted:#5b6b78;--line:#dde3e8;--bg:#f5f7f9;--card:#fff;--brand:#0f6e5a;--brand2:#e8f4f1;--over:#1d6fb8;--short:#c0392b;--ok:#1e8449;--warn:#fff6e0}
+*{box-sizing:border-box}
+body{margin:0;font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--bg)}
+a{color:var(--brand)}
+header.top{background:var(--ink);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header.top b{font-size:18px}
+header.top .tag{font-size:13px;background:#ffffff22;padding:3px 10px;border-radius:99px}
+.wrap{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+.hero h1{font-size:clamp(26px,4vw,38px);line-height:1.15;margin:10px 0 8px}
+.hero p{color:var(--muted);max-width:720px;margin:0 0 12px;font-size:17px}
+.notice{background:var(--warn);border:1px solid #f0d58c;border-radius:10px;padding:10px 14px;font-size:14px;margin:14px 0 22px}
+.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+.grid.two{grid-template-columns:1fr 1fr}
+.grid>*{min-width:0}
+@media (max-width:860px){.grid,.grid.two{grid-template-columns:1fr}}
+@media (max-width:420px){.field{grid-template-columns:1fr 112px}.row{grid-template-columns:46px 1fr 78px}.card{padding:14px}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h2{margin:0 0 4px;font-size:20px}
+.card .sub{color:var(--muted);font-size:14px;margin:0 0 14px}
+.step{display:inline-block;background:var(--brand);color:#fff;border-radius:99px;font-size:12px;font-weight:700;padding:2px 9px;margin-right:6px;vertical-align:2px}
+.denoms{display:grid;grid-template-columns:repeat(auto-fit,minmax(265px,1fr));gap:2px 22px}
+.dh{grid-column:1/-1;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin-top:8px}
+.row{display:grid;grid-template-columns:46px minmax(132px,1fr) minmax(70px,auto);align-items:center;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.row label{font-weight:700}
+.qty{display:flex;align-items:center;gap:4px}
+.qty button{width:40px;height:40px;border:1px solid var(--line);background:#fff;border-radius:8px;font-size:20px;cursor:pointer;touch-action:manipulation}
+.qty input{width:100%;min-width:44px;height:40px;text-align:center;font-size:18px;border:1px solid var(--line);border-radius:8px}
+.row .sum{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.total{display:flex;justify-content:space-between;align-items:baseline;margin-top:14px;padding:12px 14px;background:var(--brand2);border-radius:10px}
+.total span{font-size:15px}
+.total strong{font-size:28px;font-variant-numeric:tabular-nums}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:0;border-radius:10px;padding:12px 16px;font-size:16px;font-weight:600;cursor:pointer;background:var(--brand);color:#fff;text-decoration:none;display:inline-block;text-align:center}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.locked{color:var(--muted);text-align:center;padding:28px 10px;border:2px dashed var(--line);border-radius:12px}
+.locked .lock{font-size:30px}
+.field{display:grid;grid-template-columns:1fr 130px;align-items:center;gap:8px;margin:6px 0}
+.field input{height:40px;font-size:17px;border:1px solid var(--line);border-radius:8px;padding:0 10px;text-align:right;width:100%}
+.sample{display:inline-block;background:#fde8c8;color:#7a4b00;font-size:11px;font-weight:800;letter-spacing:.06em;padding:2px 7px;border-radius:5px;vertical-align:2px}
+table.bd{width:100%;border-collapse:collapse;margin-top:10px;font-variant-numeric:tabular-nums}
+table.bd td{padding:6px 2px;border-bottom:1px solid var(--line)}
+table.bd td:last-child{text-align:right}
+table.bd tr.t td{font-weight:800;border-top:2px solid var(--ink)}
+.result{margin-top:12px;padding:14px;border-radius:12px;text-align:center;font-weight:800;font-size:22px}
+.result.over{background:#e3effa;color:var(--over)}
+.result.short{background:#fbe7e5;color:var(--short)}
+.result.even{background:#e4f5ea;color:var(--ok)}
+.result small{display:block;font-weight:500;font-size:14px;margin-top:4px;color:var(--ink)}
+.hint{font-size:13px;color:var(--muted);margin-top:8px}
+section.block{margin-top:22px}
+.price{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center}
+@media (max-width:760px){.price{grid-template-columns:1fr}}
+.price .big{font-size:32px;font-weight:800}
+.price ul{margin:8px 0 0;padding-left:18px}
+.quote{border-left:4px solid var(--brand);padding:6px 12px;margin:10px 0;color:#2c3e50;background:#fafcfb}
+.quote cite{display:block;font-size:13px;color:var(--muted);font-style:normal}
+footer{color:var(--muted);font-size:13px;text-align:center;margin-top:30px}
+.printonly{display:none}
+@media print{
+  body{background:#fff}
+  header.top,.hero,.notice,#deposit,#waitlist,#why,footer,.btns,.qty button,.hint,.noprint{display:none!important}
+  .grid{grid-template-columns:1fr}
+  .card{border:0;padding:0}
+  .printonly{display:block}
+  .row{grid-template-columns:70px 80px 100px;border-bottom:1px solid #ccc}
+  .qty input{border:0;height:auto;font-size:14px}
+  .row.zero{display:none}
+  .denoms{grid-template-columns:1fr 1fr}
+  .field,.sub,.card>h2,#sampleLabel{display:none!important}
+  .printonly h2{display:block!important}
+}
+</style>
+</head>
+<body>
+<header class="top"><b>DrawerCount <span style="font-weight:400">for Square</span></b><span class="tag">Interactive demo &middot; not connected to Square</span></header>
+<div class="wrap">
+  <div class="hero">
+    <h1>Count the drawer bill by bill. See what Square expected only after.</h1>
+    <p>A blind end-of-day cash close for Square sellers. Staff enter how many of each bill and coin they have; DrawerCount totals it, then reveals the expected cash, the over/short and what makes up the expected amount. It also matches card sales minus fees to the bank deposit.</p>
+  </div>
+  <div class="notice"><b>This is a demo.</b> It does not connect to Square and nothing you type leaves this page. The live version connects to your Square account (read-only) and pulls the shift's expected cash, paid-ins/outs and refunds automatically. All numbers marked <span class="sample">SAMPLE</span> are made up for illustration.</div>
+
+  <div class="grid">
+    <div class="card" id="count">
+      <h2><span class="step">1</span>Blind count</h2>
+      <p class="sub">Enter the number of each bill and coin in the drawer. The expected amount stays hidden.</p>
+      <div class="printonly"><h2>DrawerCount: cash count summary</h2><p id="printMeta"></p></div>
+      <div class="denoms" id="denoms"></div>
+      <div class="total"><span>Counted cash</span><strong id="countedTotal">$0.00</strong></div>
+      <div class="btns">
+        <button class="btn" id="lockBtn">Finish count &amp; reveal expected</button>
+        <button class="btn ghost" id="clearBtn">Clear</button>
+      </div>
+    </div>
+
+    <div class="card" id="reveal">
+      <h2><span class="step">2</span>Reveal expected</h2>
+      <p class="sub">After the count is finished, compare it to what the drawer should hold.</p>
+      <div class="locked" id="lockedBox"><div class="lock">&#128274;</div>Hidden until the count is finished.<br>That's what makes it a <b>blind</b> close: staff can't adjust their count to match.</div>
+      <div id="revealBox" hidden>
+        <div class="btns noprint" style="margin-top:0">
+          <button class="btn ghost" id="sampleBtn">Load sample Square day</button>
+        </div>
+        <p class="hint" id="sampleLabel" hidden><span class="sample">SAMPLE DATA</span> Made-up figures standing in for a Square cash drawer shift.</p>
+        <div class="field"><label for="f_float">Starting float</label><input id="f_float" inputmode="decimal" placeholder="0.00"></div>
+        <div class="field"><label for="f_sales">+ Cash sales</label><input id="f_sales" inputmode="decimal" placeholder="0.00"></div>
+        <div class="field"><label for="f_refunds">&minus; Cash refunds</label><input id="f_refunds" inputmode="decimal" placeholder="0.00"></div>
+        <div class="field"><label for="f_paidin">+ Paid in</label><input id="f_paidin" inputmode="decimal" placeholder="0.00"></div>
+        <div class="field"><label for="f_paidout">&minus; Paid out</label><input id="f_paidout" inputmode="decimal" placeholder="0.00"></div>
+        <p class="hint">Or skip the breakdown and type the expected cash directly:</p>
+        <div class="field"><label for="f_expected"><b>Expected cash</b></label><input id="f_expected" inputmode="decimal" placeholder="auto"></div>
+        <table class="bd" id="breakdown"></table>
+        <div class="result even" id="result" hidden></div>
+        <div class="btns noprint"><button class="btn ghost" id="printBtn">Print / save summary</button></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="block card" id="deposit">
+    <h2><span class="step">3</span>Card deposit check <span class="sample">SAMPLE</span></h2>
+    <p class="sub">Card sales minus processing fees should equal what lands in the bank. The live version pulls these from Square payouts; here they are sample numbers you can edit.</p>
+    <div class="grid two">
+      <div>
+        <div class="field"><label for="d_gross">Card sales (gross) <span class="sample">SAMPLE</span></label><input id="d_gross" inputmode="decimal" value="1842.60"></div>
+        <div class="field"><label for="d_fees">&minus; Processing fees <span class="sample">SAMPLE</span></label><input id="d_fees" inputmode="decimal" value="48.91"></div>
+        <div class="field"><label for="d_dep">Deposit in bank</label><input id="d_dep" inputmode="decimal" value="1793.69"></div>
+      </div>
+      <div>
+        <table class="bd" id="depTable"></table>
+        <div class="result even" id="depResult"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block card" id="why">
+    <h2>Why this exists</h2>
+    <p class="sub">Square sellers have asked for denomination counting since 2022. From the Square Community feature request (Sep 2026):</p>
+    <div class="quote">&ldquo;Built-in denomination counter. Let staff enter counts by bill and coin (20 &times; $1, 6 &times; $5, etc.) and have Square total it automatically.&rdquo;<cite>Square seller, Square Community, Sep 2026</cite></div>
+    <div class="quote">&ldquo;We ultimately stopped having our staff count the drawer when we switched from toast to square because this was missing.&rdquo;<cite>Square seller, Square Community, Sep 2026</cite></div>
+    <p class="hint"><a href="https://community.squareup.com/t5/Feature-Requests/Redesign-the-end-of-day-cash-closing-flow-denomination-counting/idi-p/849765" target="_blank" rel="noopener">Read the original request</a>. DrawerCount is independent and not affiliated with or endorsed by Square.</p>
+  </section>
+
+  <section class="block card" id="waitlist">
+    <div class="price">
+      <div>
+        <h2>Early users: $12/mo per location, locked in.</h2>
+        <ul>
+          <li>Blind bill-and-coin count on any phone or tablet</li>
+          <li>Expected cash pulled from Square, with over/short and what caused it</li>
+          <li>Card sales minus fees matched to the deposit</li>
+          <li>A saved record of every count, per staff member</li>
+        </ul>
+      </div>
+      <div style="text-align:center">
+        <div class="big">$12<span style="font-size:16px;font-weight:500">/mo per location</span></div>
+        <p class="hint">Price locked for early users. Cancel any time.</p>
+        <div class="btns" style="justify-content:center">
+          <a class="btn" id="preorderBtn" href="#preorder">Pre-order early access, $12</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>DrawerCount demo &middot; Not affiliated with Square, Inc. &middot; Nothing entered here is stored or sent.</footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  // values in cents to avoid floating point errors
+  var BILLS=[["$100",10000],["$50",5000],["$20",2000],["$10",1000],["$5",500],["$2",200],["$1",100]];
+  var COINS=[["$1",100],["50¢",50],["25¢",25],["10¢",10],["5¢",5],["1¢",1]];
+  var SAMPLE={float:200.00,sales:684.25,refunds:12.50,paidin:20.00,paidout:35.00};
+  var $=function(id){return document.getElementById(id)};
+  var fmt=function(c){var s=c<0?"-":"";c=Math.abs(Math.round(c));return s+"$"+Math.floor(c/100).toLocaleString("en-US")+"."+String(c%100).padStart(2,"0")};
+  var toCents=function(v){v=String(v||"").replace(/[$,\s]/g,"");if(v==="")return null;var n=Number(v);return isFinite(n)?Math.round(n*100):null};
+  var inputs=[];
+  function addRow(container,label,cents,kind){
+    var id="q_"+kind+"_"+cents;
+    var row=document.createElement("div");row.className="row zero";
+    row.innerHTML='<label for="'+id+'">'+label+'</label><div class="qty"><button type="button" aria-label="minus one '+label+'">&minus;</button><input id="'+id+'" type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-cents="'+cents+'"><button type="button" aria-label="plus one '+label+'">+</button></div><div class="sum">$0.00</div>';
+    var inp=row.querySelector("input"),b=row.querySelectorAll("button");
+    b[0].onclick=function(){inp.value=Math.max(0,(parseInt(inp.value,10)||0)-1);recalc()};
+    b[1].onclick=function(){inp.value=(parseInt(inp.value,10)||0)+1;recalc()};
+    inp.addEventListener("input",recalc);
+    inputs.push({inp:inp,cents:cents,row:row,label:label,kind:kind});
+    container.appendChild(row);
+  }
+  var d=$("denoms");
+  var h=document.createElement("div");h.className="dh";h.textContent="Bills";d.appendChild(h);
+  BILLS.forEach(function(x){addRow(d,x[0],x[1],"bill")});
+  h=document.createElement("div");h.className="dh";h.textContent="Coins";d.appendChild(h);
+  COINS.forEach(function(x){addRow(d,x[0],x[1],"coin")});
+
+  var counted=0,revealed=false;
+  function recalc(){
+    counted=0;
+    inputs.forEach(function(o){
+      var q=parseInt(o.inp.value,10);if(!(q>0))q=0;
+      var sub=q*o.cents;counted+=sub;
+      o.row.querySelector(".sum").textContent=fmt(sub);
+      o.row.classList.toggle("zero",q===0);
+    });
+    $("countedTotal").textContent=fmt(counted);
+    if(revealed)compare();
+  }
+  window.DrawerCount={counted:function(){return counted}};
+
+  $("lockBtn").onclick=function(){
+    revealed=true;$("lockedBox").hidden=true;$("revealBox").hidden=false;
+    $("lockBtn").disabled=true;
+    inputs.forEach(function(o){o.inp.readOnly=true;o.row.querySelectorAll("button").forEach(function(b){b.disabled=true})});
+    compare();
+    $("reveal").scrollIntoView({behavior:"smooth",block:"start"});
+  };
+  $("clearBtn").onclick=function(){
+    inputs.forEach(function(o){o.inp.value="";o.inp.readOnly=false;o.row.querySelectorAll("button").forEach(function(b){b.disabled=false})});
+    ["f_float","f_sales","f_refunds","f_paidin","f_paidout","f_expected"].forEach(function(id){$(id).value=""});
+    revealed=false;$("lockBtn").disabled=false;$("lockedBox").hidden=false;$("revealBox").hidden=true;$("sampleLabel").hidden=true;
+    recalc();
+  };
+  $("sampleBtn").onclick=function(){
+    $("f_float").value=SAMPLE.float.toFixed(2);$("f_sales").value=SAMPLE.sales.toFixed(2);
+    $("f_refunds").value=SAMPLE.refunds.toFixed(2);$("f_paidin").value=SAMPLE.paidin.toFixed(2);
+    $("f_paidout").value=SAMPLE.paidout.toFixed(2);$("f_expected").value="";
+    $("sampleLabel").hidden=false;compare();
+  };
+  ["f_float","f_sales","f_refunds","f_paidin","f_paidout","f_expected"].forEach(function(id){$(id).addEventListener("input",compare)});
+
+  var lastExpected=null;
+  function compare(){
+    var p={};["float","sales","refunds","paidin","paidout"].forEach(function(k){p[k]=toCents($("f_"+k).value)});
+    var anyParts=Object.keys(p).some(function(k){return p[k]!==null});
+    var direct=toCents($("f_expected").value);
+    var exp=null,html="";
+    if(direct!==null){
+      exp=direct;html='<tr><td>Expected cash (entered)</td><td>'+fmt(exp)+'</td></tr>';
+    }else if(anyParts){
+      var g=function(k){return p[k]||0};
+      exp=g("float")+g("sales")-g("refunds")+g("paidin")-g("paidout");
+      html='<tr><td>Starting float</td><td>'+fmt(g("float"))+'</td></tr>'+
+        '<tr><td>+ Cash sales</td><td>'+fmt(g("sales"))+'</td></tr>'+
+        '<tr><td>&minus; Cash refunds</td><td>'+fmt(-g("refunds"))+'</td></tr>'+
+        '<tr><td>+ Paid in</td><td>'+fmt(g("paidin"))+'</td></tr>'+
+        '<tr><td>&minus; Paid out</td><td>'+fmt(-g("paidout"))+'</td></tr>'+
+        '<tr class="t"><td>Expected cash</td><td>'+fmt(exp)+'</td></tr>';
+      $("f_expected").placeholder=fmt(exp).replace("$","");
+    }
+    lastExpected=exp;
+    var r=$("result");
+    if(exp===null){$("breakdown").innerHTML="";r.hidden=true;return}
+    html+='<tr><td>Counted cash</td><td>'+fmt(counted)+'</td></tr>';
+    $("breakdown").innerHTML=html;
+    var diff=counted-exp;r.hidden=false;
+    r.className="result "+(diff>0?"over":diff<0?"short":"even");
+    r.dataset.diff=String(diff);
+    r.innerHTML=(diff>0?"Over by "+fmt(diff):diff<0?"Short by "+fmt(-diff):"Balanced")+
+      '<small>Counted '+fmt(counted)+' vs expected '+fmt(exp)+'</small>';
+  }
+
+  function dep(){
+    var g=toCents($("d_gross").value)||0,f=toCents($("d_fees").value)||0,dd=toCents($("d_dep").value);
+    var exp=g-f;
+    $("depTable").innerHTML='<tr><td>Card sales (gross)</td><td>'+fmt(g)+'</td></tr><tr><td>&minus; Processing fees</td><td>'+fmt(-f)+'</td></tr><tr class="t"><td>Expected deposit</td><td>'+fmt(exp)+'</td></tr><tr><td>Deposit entered</td><td>'+(dd===null?"&mdash;":fmt(dd))+'</td></tr>';
+    var r=$("depResult");
+    if(dd===null){r.className="result even";r.textContent="Enter the deposit amount";delete r.dataset.diff;return}
+    var diff=dd-exp;r.dataset.diff=String(diff);
+    r.className="result "+(diff>0?"over":diff<0?"short":"even");
+    r.innerHTML=diff===0?"Deposit matches":(diff>0?"Deposit is "+fmt(diff)+" more than expected":"Deposit is "+fmt(-diff)+" less than expected")+'<small>Expected '+fmt(exp)+'</small>';
+  }
+  ["d_gross","d_fees","d_dep"].forEach(function(id){$(id).addEventListener("input",dep)});
+
+  $("printBtn").onclick=function(){
+    $("printMeta").textContent="Printed "+new Date().toLocaleString("en-US")+(document.getElementById("sampleLabel").hidden?"":" · expected figures are SAMPLE data");
+    window.print();
+  };
+  recalc();dep();
+})();
+</script>
+</body>
+</html>
